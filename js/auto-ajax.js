@@ -44,6 +44,7 @@ jQuery(function ($) {
     // WP Dashboard Auto Ajax User Settings
     showLoading : options['show-loading'],
     advBubbleQ  : options['adv-bubble-query'],
+    updateBrowserUrl: options['update-browser-url'],
     advFallback : options['adv-fallback-div'],
     advLoadDiv  : options['adv-load-div'],
     advMenuDiv  : options['adv-menu-div'],
@@ -76,6 +77,8 @@ jQuery(function ($) {
       this.prepUrls(selector);
       // Setup the event handler
       this.setUpEvents();
+      // Setup popstate
+      this.setUpPopstate();
 
       // Execute Meyim Site Specific code
       if (this) {
@@ -83,6 +86,7 @@ jQuery(function ($) {
       }
     },
     appendLoading:function($elm){
+       if (!$elm && typeof $elm === "object")
         $elm.append('<div class="loading"></div>');
     },
     removeLoading : function($elm){
@@ -113,11 +117,11 @@ jQuery(function ($) {
           // Get the url
           var url = $(this).attr('href');
           // Check if url is an onsite url
-          if (url.indexOf(blogUrl) == 0) {
+          if (typeof url === "string" && url.indexOf(blogUrl) == 0) {
             // put the url into a data attribute to easily identify our links
             $anchor.attr('data-auto-ajax-plugin', url);
           }
-        })
+        });
       }
     },
 
@@ -130,18 +134,18 @@ jQuery(function ($) {
       // First we need the event to listen for links being clicked
       $('body').on('click.autoajax', 'a[data-auto-ajax-plugin]', function (e) {
         e.preventDefault();
-        var url = $(this).data('auto-ajax-plugin');
+        self.url = $(this).data('auto-ajax-plugin');
         // Save reference to this link in the case of bubblequery
         self.refPointKey = 'auto-ajax-'+ autoAjaxRandomKey(6);
         $(this).addClass(self.refPointKey);
         // Get the level as set by user in Dashboard settings page
-        var level = self.autoAjaxLvl.toLowerCase();
+        self.settingsLevel = self.autoAjaxLvl.toLowerCase();
         // Figure out what selector/s we are going to use
-        var content = level == 'basic' ? self.defaultDiv : self.advLoadDiv;
-        var fallback = level == 'advanced' ? self.advFallback : '';
+        var content = self.getContentDivSelector();
+        var fallback = self.getFallbackSelector();
 
         // Try to use Ajax to load a clicked link into the current page
-        var attempt = self.makeAjaxRequest(url, self.loadResults, content, fallback);
+        var attempt = self.makeAjaxRequest(self.url, self.loadResults, content, fallback);
         // Check if successful
         if (!attempt) {
           // The attempt was bad for some reason
@@ -158,7 +162,34 @@ jQuery(function ($) {
       });
     },
 
+
+    getContentDivSelector: function () {
+      return this.settingsLevel == 'basic' ? this.defaultDiv : this.advLoadDiv;
+    },
+
+    getFallbackSelector: function () {
+      return this.settingsLevel == 'advanced' ? this.advFallback : '';
+    },
+
+    setUpPopstate: function() {
+      if (!this.updateBrowserUrl) {
+        return void 0;
+      }
+      var self = this;
+      var content = self.getContentDivSelector();
+      var fallback = self.getFallbackSelector();
+
+      window.onpopstate = function(event) {
+        // Try to use Ajax to load a clicked link into the current page
+        self.url = document.location;
+        var attempt = self.makeAjaxRequest(self.url, self.loadResults, content, fallback);
+        if (!attempt) {
+          window.loction = document.location;
+        }
+      };
+    },
     /**
+     // TODO: Remove arguments from functions where possible in favor of object properties
      * Make an Ajax request on AutoAjax links, check page, prep the results
      * @param url          The url to be loaded
      * @param callback     The callback to handle the response if successful
@@ -172,6 +203,7 @@ jQuery(function ($) {
         return false;
       }
       var self = this;
+      self.url = url;
       var $oldContent;
 
       // Perform Bubble Query Attempt
@@ -189,14 +221,14 @@ jQuery(function ($) {
 
       // Let's make the Ajax Request
       $.ajax({
-        url : url,
+        url : self.url,
         type : 'GET',
         dataType : 'html',
         success : function (res) {
           // Get the new content and old content references
           var $resContent = $(res).find( container );
 
-          if ($resContent.length && $oldContent.length) {
+          if (typeof $resContent !== "undefined" && $resContent.length && typeof $oldContent !== "undefined" && $oldContent.length) {
             // We are in good shape to load content
             callback($resContent, $oldContent);
           } else if (fallback != ''){
@@ -229,7 +261,7 @@ jQuery(function ($) {
      * @param container  jQuery object of the page container to load htmlFrag into
      */
     loadResults : function ( htmlFrag, container ) {
-      // Args should both be jQuery objects no worries.
+      // Args should both be jQuery objects.
       var self = autoAjax;
       if (self.autoCache) {
         // Store the prev page into cache
@@ -240,6 +272,16 @@ jQuery(function ($) {
       }
       container.html(htmlFrag.html());
       self.removeLoading(container);
+
+      if (self.updateBrowserUrl) {
+        self.updateHistoryUrl();
+      }
+    },
+
+    updateHistoryUrl: function() {
+      if (!this.updateBrowserUrl && !history || typeof history !== "object" || typeof history.pushState !== "function")
+        return void 0;
+      history.pushState({}, '', this.url);
     },
 
     loadPageNormal : function ( url ) {

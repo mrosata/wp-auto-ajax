@@ -24,6 +24,7 @@ if ( isset($_POST['auto-ajax-settings']) == '1' ) {
     $adv_menu_div = esc_attr($_POST['adv-menu-div']);
     $adv_fallback_div = esc_attr($_POST['adv-fallback-div']);
     $adv_bubble_query = strtolower(esc_attr($_POST['adv-bubble-query'])) == 'true' ? 'true' : 'false';
+    $update_browser_url = strtolower(esc_attr($_POST['update-browser-url'])) == 'true' ? 'true' : 'false';
 
 
     $options = array(
@@ -32,7 +33,8 @@ if ( isset($_POST['auto-ajax-settings']) == '1' ) {
         'adv-menu-div'      => $adv_menu_div,
         'auto-ajax-level'   => $auto_ajax_level,
         'adv-fallback-div'  => $adv_fallback_div,
-        'adv-bubble-query'  => $adv_bubble_query
+        'adv-bubble-query'  => $adv_bubble_query,
+        'update-browser-url' => $update_browser_url,
     );
 
     update_option('rosata-auto-ajax', $options);
@@ -49,6 +51,7 @@ if ( isset($_POST['auto-ajax-settings']) == '1' ) {
     $adv_fallback_div = $options['adv-fallback-div'];
     $auto_ajax_level = $options['auto-ajax-level'];
     $adv_bubble_query = $options['adv-bubble-query'];
+    $update_browser_url = $options['update-browser-url'];
 }
 
 
@@ -101,6 +104,35 @@ if ( isset($_POST['auto-ajax-settings']) == '1' ) {
                 </td>
             </tr>
 
+
+
+            <!-- Update Browser URL ( pushState History ) -->
+            <tr>
+                <th></th>
+                <td>
+                    <?php // see if Ajax Bubbling container search is checked
+                    $checked = strtolower($update_browser_url) == 'true' ? 'checked' : '';
+                    ?>
+                    <label for="adv-menu-div">
+                        <?php _e('Update Browser URL (History):', 'auto-ajax') ?>
+                    </label>
+                    <br />
+
+                    <!-- Checkbox Recursive Container Search -->
+                    <input type="checkbox" name="update-browser-url" size="35" class="auto-ajax-checkbox" value="true" <?php echo $checked ?>/>
+
+                    <!-- Tooltip -->
+                    <span class="dashicons dashicons-editor-help auto-ajax-info-icon"></span>
+                    <p class="auto-ajax-tooltip">
+                        <?php _e('After loading Ajax content on your site the plugin will try to update the browsers URL using the History API.', 'auto-ajax') ?>
+                    </p>
+
+                </td>
+            </tr>
+
+
+
+
             <!-- Advanced Settings -->
             <tr>
                 <th>
@@ -116,8 +148,6 @@ if ( isset($_POST['auto-ajax-settings']) == '1' ) {
 
                 </td>
             </tr>
-
-
 
 
             <!-- Option Recursive Container Search -->

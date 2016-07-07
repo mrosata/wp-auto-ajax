@@ -25,6 +25,7 @@ class Auto_Ajax {
            $auto_ajax_level = 'basic',
            $adv_fallback_div = '',
            $adv_bubble_query = 'false',
+           $update_browser_url = 'false',
            $options;
 
     function __construct () {
@@ -66,7 +67,8 @@ class Auto_Ajax {
         $this->auto_ajax_level  = isset($options['auto-ajax-level'])  ? $options['auto-ajax-level'] : 'basic';
         $this->adv_fallback_div = isset($options['adv-fallback-div']) ? $options['adv-fallback-div'] : '';
         $this->adv_bubble_query = isset($options['adv-bubble-query']) ? $options['adv-bubble-query'] : 'false';
-        
+        $this->update_browser_url = isset($options['update-browser-url']) ? $options['update-browser-url'] : 'false';
+
         // Update the options in database in case this is initial setup or options have been added in upgrade
         update_option('rosata-auto-ajax', array(
             'default-div'       => $this->default_div,
@@ -74,7 +76,8 @@ class Auto_Ajax {
             'adv-menu-div'      => $this->adv_menu_div,
             'auto-ajax-level'   => $this->auto_ajax_level,
             'adv-fallback-div'  => $this->adv_fallback_div,
-            'adv-bubble-query'  => $this->adv_bubble_query
+            'adv-bubble-query'  => $this->adv_bubble_query,
+            'update-browser-url'  => $this->update_browser_url,
         ));
 
         // Set the objects options array to the correct settings
