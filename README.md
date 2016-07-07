@@ -3,6 +3,10 @@
 WP Auto Ajax!
 ===================
 
+> Update 2016-07-7
+I've gone and fixed a few JavaScript errors that may or may not have been seen in some themes. A new History feature has been added which works regardless if you are in basic or advanced mode (you just need to check the checkbox on the settings page). The history feature will update the url after a successful Ajax page load and it will try to implement Ajax functionality when the user hits back/forward through their history. Just like with the normal settings, if the plugin can't successfully make and populate Ajax content into the page then it will fallback to regular page loads.
+
+
 
 This plugin is in halted development. It worked on 2 themes that it was tested on and is in use on a production site at the moment. That being said, there are many features I would like to add before putting this on the WP Repository, but you are welcome to use the plugin however you'd like. If any issues pop up, I would love to know about them, but would advise that you seek your own solutions as I can't guarantee support.
 
