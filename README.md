@@ -32,15 +32,17 @@ Documentation
 If the plugin doesn't work out of the box then it's best to use the advanced settings. Note that the browser history should work in both "regular" and "advanced" mode, the options in the advanced section require that you check "advanced" in the settings screen.  
 
 If you would like to attach custom JavaScript events to fire after the ajax returns then use one or more of the following. Each receives 3 arguments (Event, jQXHR, state):
-```
-// success: Fires when the ajax request returns successfully and 
-            the plugin is able to load content into your HTML.
-$(document).on('complete.wp-auto-ajax', someLogicForOnComplete);
-// error: Fires when the ajax request throws an error and in those
-          cases you probably have something wrong on your server.
-$(document).on('complete.wp-auto-ajax', someLogicForOnComplete);
-// complete: Fires when ajax is complete regardless of outcome.
-$(document).on('complete.wp-auto-ajax', someLogicForOnComplete);
+```javascript
+/* success: Fires when the ajax request returns successfully and 
+            the plugin is able to load content into your HTML. */
+    $(document).on('complete.wp-auto-ajax', someLogicForOnComplete);
+    
+/* error: Fires when the ajax request throws an error and in those
+          cases you probably have something wrong on your server. */
+    $(document).on('complete.wp-auto-ajax', someLogicForOnComplete);
+    
+/* complete: Fires when ajax is complete regardless of outcome. */
+    $(document).on('complete.wp-auto-ajax', someLogicForOnComplete);
 ```
 
 One thing to note, if the Ajax request comes back fine but for some reason the plugin isn't able to handle loading the content into the page there is no event because the plugin just allows the link to behave the same way it would have if the plugin wasn't turned on (so the next page loads without Ajax and there is no need for event handling).
