@@ -3,7 +3,7 @@
  *
  * @author Michael Rosata mrosata1984@gmail.com
  * @website http://onethingsimple.com
- * @version 0.1.0
+ * @version 0.1.1
  */
 
 jQuery(function ($) {
@@ -37,7 +37,32 @@ jQuery(function ($) {
    *
    * This object manages turning WP sites into One Page Applications.
    *
-   * @type {{showLoading: *, advBubbleQ: *, advFallback: *, advLoadDiv: *, advMenuDiv: *, autoAjaxLvl: *, defaultDiv: *, customPrep: string, autoCache: null, debug: null, stylesheets: Array, headScripts: Array, footScripts: Array, init: Function, prepUrls: Function, setUpEvents: Function, makeAjaxRequest: Function, loadResults: Function, loadPageNormal: Function, customMeyimFunc: Function}}
+   * @type {{
+   * showLoading: bool, 
+   * advBubbleQ: bool, 
+   * updateBrowserUrl: bool,
+   * advFallback: bool, 
+   * advLoadDiv: bool, 
+   * advMenuDiv: string, 
+   * autoAjaxLvl: *, 
+   * defaultDiv: *, 
+   * customPrep: string, 
+   * autoCache: null, 
+   * debug: null, 
+   * stylesheets: Array, 
+   * headScripts: Array, 
+   * footScripts: Array, 
+   * init: Function, 
+   * prepUrls: Function,
+   * getContentDivSelector: Function,
+   * getFallbackSelector: Function,
+   * setUpPopstate: Function,
+   * setUpEvents: Function, 
+   * makeAjaxRequest: Function, 
+   * loadResults: Function, 
+   * loadPageNormal: Function, 
+   * customMeyimFunc: Function
+   * }}
    */
   var autoAjax = {
 
@@ -59,10 +84,13 @@ jQuery(function ($) {
 
     // Keep a list of all stylesheets #Currently unused
     stylesheets : [],
+
     // Keep a list of all head scripts #Currently unused
     headScripts : [],
+
     // Keep a list of all foot scripts #Currently unused
     footScripts : [],
+
 
     /**
      * Initiate the AutoAjax object, setup the page using plugin settings
@@ -71,27 +99,25 @@ jQuery(function ($) {
       // figure out what selector we will use to identify links
       var selector = this.autoAjaxLvl == 'advanced' ? this.advMenuDiv : 'a';
       selector = selector == '' ? 'a' : selector;
-      // Save the selector so we can
       this.globalSelector = selector;
       // put data-auto-ajax-plugin="true" on links we want to ajax
       this.prepUrls(selector);
-      // Setup the event handler
       this.setUpEvents();
-      // Setup popstate
       this.setUpPopstate();
-
-      // Execute Meyim Site Specific code
-      if (this) {
-        this[this.customPrep]();
-      }
     },
+
+
     appendLoading:function($elm){
        if (!$elm && typeof $elm === "object")
         $elm.append('<div class="loading"></div>');
     },
+
+
     removeLoading : function($elm){
         $elm.find('.loading').remove();
     },
+
+
     /**
      * Prepare urls to be used with AutoAjax. This function is called initially and then also called
      * again to work on any dynamically loaded content. We also listen for global events to make sure
@@ -100,23 +126,21 @@ jQuery(function ($) {
      * @param context    (optional) css selector of the container, 'body' or new elm with Ajax content
      */
     prepUrls : function (selector, context) {
-      var self = this;
-      // Prep the arguments, selector identifies links to make ajax
+      var self = this,
+          blogUrl = self.locals.blogUrl;
+      
       selector = selector || self.globalSelector;
-      // Context localizes the area to look for links so we can more efficiently target changed areas
       context = context || '';
       context = context.length > 0 ? context + ' ' : context;
-      // Get the WP website url, so we know what is local and what is not
-      var blogUrl = self.locals.blogUrl;
+      
       // Set up the links if we have the info needed
       if (blogUrl != '') {
         var links = $( context + selector );
 
         links.each(function (i, anchor) {
-          var $anchor = $(this);
-          // Get the url
-          var url = $(this).attr('href');
-          // Check if url is an onsite url
+          var $anchor = $(this),
+              url = $(this).attr('href');
+
           if (typeof url === "string" && url.indexOf(blogUrl) == 0) {
             // put the url into a data attribute to easily identify our links
             $anchor.attr('data-auto-ajax-plugin', url);
@@ -124,6 +148,7 @@ jQuery(function ($) {
         });
       }
     },
+
 
     /**
      * Sets up the link click handler for AutoAjax links using selector provided by the
@@ -154,11 +179,10 @@ jQuery(function ($) {
       });
 
       // Second, We need an event to listen for global Ajax Events
-      $(document).bind("ajaxSend", function(){
-
-      }).bind("ajaxComplete", function(){
-        // Preps Urls on recently loaded content, adding data to elements
-        self.prepUrls();
+      $(document)
+        .bind("ajaxComplete", function(){
+          // Preps Urls on recently loaded content, adding data to elements
+          self.prepUrls();
       });
     },
 
@@ -188,6 +212,7 @@ jQuery(function ($) {
         }
       };
     },
+
     /**
      // TODO: Remove arguments from functions where possible in favor of object properties
      * Make an Ajax request on AutoAjax links, check page, prep the results
@@ -202,14 +227,15 @@ jQuery(function ($) {
         // not enough args to complete request
         return false;
       }
-      var self = this;
+      var self = this,
+          $oldContent,
+          refPointClass = '.' + self.refPointKey;
+      
       self.url = url;
-      var $oldContent;
-
-      // Perform Bubble Query Attempt
-      var refPointClass = '.' + self.refPointKey;
+      
       if ((self.advBubbleQ == 'true') && refPointClass )  {
         $oldContent = $( container).has(refPointClass);
+        
         if (!$oldContent.length && fallback != '') {
           // Try fallback, no need to check since nothing else we could do
           $oldContent = $(fallback).has(refPointClass);
@@ -224,6 +250,12 @@ jQuery(function ($) {
         url : self.url,
         type : 'GET',
         dataType : 'html',
+        error: function() {
+          $(document).trigger('error.wp-auto-ajax', arguments);
+        },
+        complete: function() {
+          $(document).trigger('complete.wp-auto-ajax', arguments);
+        },
         success : function (res) {
           // Get the new content and old content references
           var $resContent = $(res).find( container );
@@ -242,10 +274,14 @@ jQuery(function ($) {
             if ($resContent.length && $oldContent.length) {
               // Ok, we are ready to load the pages with a fallback on 1 or both docs!
               callback($resContent, $oldContent);
-            } else {
+              return $(document).trigger('success.wp-auto-ajax', arguments);
+            } 
+            else {
               self.loadPageNormal(url)
             }
-          } else {
+
+          } 
+          else {
             // We have no choice but to load as normal
             self.loadPageNormal(url);
           }

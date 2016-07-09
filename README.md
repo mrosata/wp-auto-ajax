@@ -3,20 +3,22 @@
 WP Auto Ajax!
 ===================
 
-> Update 2016-07-7
+
+> Update 2016-07-08
+Added custom events for `'complete.wp-auto-ajax'` and `'success.wp-auto-ajax'` and `'error.wp-auto-ajax'` so you may attach custom JavaScript logic to run at these times. See below for more info.
+
+> Update 2016-07-07
 I've gone and fixed a few JavaScript errors that may or may not have been seen in some themes. A new History feature has been added which works regardless if you are in basic or advanced mode (you just need to check the checkbox on the settings page). The history feature will update the url after a successful Ajax page load and it will try to implement Ajax functionality when the user hits back/forward through their history. Just like with the normal settings, if the plugin can't successfully make and populate Ajax content into the page then it will fallback to regular page loads.
 
 
 
-This plugin is in halted development. It worked on 2 themes that it was tested on and is in use on a production site at the moment. That being said, there are many features I would like to add before putting this on the WP Repository, but you are welcome to use the plugin however you'd like. If any issues pop up, I would love to know about them, but would advise that you seek your own solutions as I can't guarantee support.
+This plugin is in halted development. It worked on 2 themes that it was tested on and is in use on a production site at the moment. That being said, there are many features I would like to add before putting this on the WP Repository, but you are welcome to use the plugin however you'd like. If any issues pop up, I would love to know about them, but I can't guarantee support.
 
 ----------
 
 
-Documents
+Documentation
 -------------
-
-StackEdit stores your documents in your browser, which means all your documents are automatically saved locally and are accessible **offline!**
 
 > **Install:**
 
@@ -26,6 +28,23 @@ StackEdit stores your documents in your browser, which means all your documents 
 > - Log into your WP site and **activate** the `auto-ajax` plugin. 
 > - From there, you can find an options menu under the `tools` tab in the Dashboard. Basically your able to give CSS selectors to the &lt;a&gt; tags you want to become Ajax, and a CSS selector to the element where all the main content of the page is loaded (where the links will load into). There is also options for "fallback" selectors in case the plugin can't find the right selector on the page it is trying to load. 
 
-I will try to update this README.md during July 2015.
 
-You may contact me @ [mike@stayshine.com](mailto:mike@stayshine.com)
+If the plugin doesn't work out of the box then it's best to use the advanced settings. Note that the browser history should work in both "regular" and "advanced" mode, the options in the advanced section require that you check "advanced" in the settings screen.  
+
+If you would like to attach custom JavaScript events to fire after the ajax returns then use one or more of the following. Each receives 3 arguments (Event, jQXHR, state):
+```
+// success: Fires when the ajax request returns successfully and 
+            the plugin is able to load content into your HTML.
+$(document).on('complete.wp-auto-ajax', someLogicForOnComplete);
+// error: Fires when the ajax request throws an error and in those
+          cases you probably have something wrong on your server.
+$(document).on('complete.wp-auto-ajax', someLogicForOnComplete);
+// complete: Fires when ajax is complete regardless of outcome.
+$(document).on('complete.wp-auto-ajax', someLogicForOnComplete);
+```
+
+One thing to note, if the Ajax request comes back fine but for some reason the plugin isn't able to handle loading the content into the page there is no event because the plugin just allows the link to behave the same way it would have if the plugin wasn't turned on (so the next page loads without Ajax and there is no need for event handling).
+If you wanted to do some work when the requests are sent out to the server look into `jQuery.ajax.onSend` [http://api.jquery.com/ajaxSend/](http://api.jquery.com/ajaxSend/).
+
+
+> You may contact me @ [mike@stayshine.com](mailto:mike@stayshine.com)
