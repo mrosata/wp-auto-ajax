@@ -9,6 +9,8 @@ which classify as "tools" perform a task and complete. __Auto Ajax__ seems more 
 home in settings.
 - Moved history input to top of settings page to make the __Auto Ajax__ settings easier to understand.
 - Also, now settings not relative to the plugin setting level ('basic'/'advanced') will be disabled as well.
+- Reloads all parent theme scripts in footer (removes old ones, then reappends
+  them). This makes it so sliders and such will work again on ajax loaded pages.
 
 > Update 2016-07-08
 - Added custom events for `'complete.wp-auto-ajax'` and `'success.wp-auto-ajax'` and `'error.wp-auto-ajax'` so you may attach custom JavaScript logic to run at these times. See below for more info.

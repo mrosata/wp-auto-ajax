@@ -316,6 +316,8 @@ jQuery(function ($) {
       if (self.updateBrowserUrl) {
         self.updateHistoryUrl();
       }
+      
+      self.reloadThemeFooterScripts();
     },
 
     updateHistoryUrl: function() {
@@ -329,6 +331,36 @@ jQuery(function ($) {
       if (!this.debug) {
         window.location = url;
       }
+    },
+
+    reloadThemeFooterScripts: function () {
+      var $body = $('body');
+      var footerScripts = [];
+      // Get a list of scripts to remove
+      $('body > script')
+        .filter(function(index, tag) {
+          var src = $(tag).prop('src');
+          if (!src || !src.match(/.*wp\-content\/themes\/.+/)){
+            return false;
+          }
+          return true;
+        })
+        .each(function (index, tag) {
+          var src = $(tag).prop('src');
+          var type = $(tag).prop('type');
+          footerScripts.push({src:src, type:type || 'text/javascript'});
+          $(tag).remove();
+        });
+
+      // Now add all the scripts back into the body
+      while (footerScripts.length) {
+        var next = footerScripts.shift();
+        var $newScript = $('<script></script>');
+        $newScript.prop('src', next.src);
+        $newScript.prop('type', next.type);
+        $body.append($newScript);
+      }
+
     },
 
     /**
