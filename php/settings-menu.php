@@ -37,12 +37,12 @@ if ( isset($_POST['auto-ajax-settings']) == '1' ) {
         'update-browser-url' => $update_browser_url,
     );
 
-    update_option('rosata-auto-ajax', $options);
+    update_option('auto-ajax', $options);
     $updated = true;
 
 } else {
     // Get the settings that are currently stored to fill in the form, or use defaults
-    $options = get_option('rosata-auto-ajax');
+    $options = get_option('auto-ajax');
     $updated = false;
     // This isn't an update POST, so just get options from db
     $default_div = $options['default-div'];
@@ -54,6 +54,24 @@ if ( isset($_POST['auto-ajax-settings']) == '1' ) {
     $update_browser_url = $options['update-browser-url'];
 }
 
+$page_content=array();
+$page_content['explain_basic_mode'] = "Please try the <strong>Basic Mode</strong> to begin. By defualt it should"
+  . " hopefully work well for general WP themes. The \"Ajax HTML Container\" is a selector that tells <strong>"
+  . "Auto Ajax</strong> where to look for content in a page loaded asyncronously, and also what content on the current"
+  . " page to replace with that content. If your dynamic content is always in a common element, then the plugin has a"
+  . " simple job. However, where that is not the case you may need <strong>Advanced</strong> settings.";
+
+$page_content['default_ajax_container'] = "Default container to load and extract html to/from upon successful Ajax requests."
+  . " Accepts any CCS Selector. By default <code>#content</code> is the assumed parent. When a user clicks a link, that new page"
+  . " would also require an element matching the <code>#content</code> selector. Feel free to change"
+  . " the selector to any valid, but unique, CSS selector you want.";
+
+$page_content['ajax_menu_selector'] = "This optional css selector will force <strong>Auto Ajax</strong> to only attemp asyncronous"
+  . " navigation on particular links. The selector can be any valid <em>jQuery</em> CSS selector as long as it selects actual links."
+  . " For instance, <em>ul.menu</em> would be WRONG, because it's a container. Something like <code>ul.menu a.nav-link</code> could"
+  . " work as it points to the actual link your sites users would click. By default the plugin uses <code>a</code>, which will"
+  . " select all links on the page (<em>In any case Auto Ajax only ever modifies links that point to your own website, external links"
+  . " will always be ignored</em>). <br/>Elements matching this selector will trigger Auto-Ajax Ajax when clicked.";
 
 //todo: You should Automate this form so that you won't have to write it again in the future for other plugins
 ?>
@@ -65,19 +83,66 @@ if ( isset($_POST['auto-ajax-settings']) == '1' ) {
     </p>
 
     <p>
-        <?php _e('Please choose a method that best suites your needs. By defualt I have selected "Basic" and hopefully should work fairly well for similiarly designed themes to WP TwentyFifteen. It loads into the <code>#content</code> new pages using Ajax into the <code>#content</code> of current loaded page. Feel free to change the selector to any CSS selector you want, just make it unique to one element on the page','auto-ajax') ?>
+        <?php _e($page_content['explain_basic_mode'],'auto-ajax') ?>
     </p>
 
+    
+
+    <?php
+    if (isset($updated) && $updated):
+        echo '<div id="auto-ajax-updated" style="font-size:1.75em;color:#43a047;font-weight:bold;width:100%;text-align:center;">' .__('Auto Ajax Updated!', 'auto-ajax') . '</div>';
+        unset($_POST['auto-ajax-settings']);
+        ?>
+        <script>
+          setTimeout(function() {
+            var autoAjaxMessageElem = document.getElementById('auto-ajax-updated');
+            if (autoAjaxMessageElem && autoAjaxMessageElem.classList)
+              autoAjaxMessageElem.classList.add('hidden');
+          }, 5000);
+        </script>
+        <?php
+    endif;
+    ?>
     <form method="POST" id="autoAjaxSettings">
         <table class="form-table">
+
+            <!-- Update Browser URL ( pushState History ) -->
+            <tr>
+                <th></th>
+                <td>
+                    <?php // see if Ajax Bubbling container search is checked
+                    $checked = strtolower($update_browser_url) == 'true' ? 'checked' : '';
+                    ?>
+                    <label for="adv-menu-div">
+                        <?php _e('Update Browser URL (History):', 'auto-ajax') ?>
+                    </label>
+                    <br />
+
+                    <!-- Update Browser URL (History) GLOBAL SETTING -->
+                    <input 
+                        type="checkbox" name="update-browser-url"
+                        size="35" class="auto-ajax-checkbox" value="true" <?php echo $checked ?>/>
+
+                    <!-- Tooltip -->
+                    <span class="dashicons dashicons-editor-help auto-ajax-info-icon"></span>
+                    <p class="auto-ajax-tooltip">
+                        <?php _e('After loading Ajax content on your site the plugin will try to update the browsers URL using the History API.', 'auto-ajax') ?>
+                    </p>
+
+                </td>
+            </tr>
+
+
+
 
             <!-- Basic Settings -->
             <tr valign="top">
                 <th scope="row">
                     <?php // see if the basic box is checked or not
                     $checked = $auto_ajax_level == 'basic' ? 'checked' : '';
+                    $disabled = $auto_ajax_level == 'basic' ? '' : 'disabled';
                     ?>
-                    <!-- The Checkbox to use Basic Setup -->
+                    <!-- The Checkbox to use Basic Setup GLOBAL SETTING -->
                     <input type="radio" name="auto-ajax-level" class="auto-ajax-lvl" value="basic" <?php echo $checked ?> />
                     <h4 style="display:inline-block"><?php _e('Basic','auto-ajax') ?></h4>
                     
@@ -92,44 +157,20 @@ if ( isset($_POST['auto-ajax-settings']) == '1' ) {
                     </label>
                     <br />
 
-                    <!-- Textbox Default Ajax Loading div -->
-                    <input type="text" name="default-div" size="35" class="auto-ajax-input" value="<?php echo $default_div ?>"/>
+                    <!-- Textbox Default Ajax Loading Container BASIC SETTING -->
+                    <input 
+                        type="text" name="default-div"  data-setting-lvl="basic"
+                        size="35" class="auto-ajax-input"
+                        value="<?php echo $default_div ?>" <?php echo $disabled ?> />
 
                     <!-- Tooltip -->
                     <span class="dashicons dashicons-editor-help auto-ajax-info-icon"></span>
                     <p class="auto-ajax-tooltip">
-                        <?php _e('Default container to load and extract html from Ajax requests.', 'auto-ajax') ?>
+                        <?php _e($page_content['default_ajax_container'], 'auto-ajax') ?>
                     </p>
                     
                 </td>
             </tr>
-
-
-
-            <!-- Update Browser URL ( pushState History ) -->
-            <tr>
-                <th></th>
-                <td>
-                    <?php // see if Ajax Bubbling container search is checked
-                    $checked = strtolower($update_browser_url) == 'true' ? 'checked' : '';
-                    ?>
-                    <label for="adv-menu-div">
-                        <?php _e('Update Browser URL (History):', 'auto-ajax') ?>
-                    </label>
-                    <br />
-
-                    <!-- Checkbox Recursive Container Search -->
-                    <input type="checkbox" name="update-browser-url" size="35" class="auto-ajax-checkbox" value="true" <?php echo $checked ?>/>
-
-                    <!-- Tooltip -->
-                    <span class="dashicons dashicons-editor-help auto-ajax-info-icon"></span>
-                    <p class="auto-ajax-tooltip">
-                        <?php _e('After loading Ajax content on your site the plugin will try to update the browsers URL using the History API.', 'auto-ajax') ?>
-                    </p>
-
-                </td>
-            </tr>
-
 
 
 
@@ -138,9 +179,12 @@ if ( isset($_POST['auto-ajax-settings']) == '1' ) {
                 <th>
                     <?php // see if the advanced box is checked or not
                     $checked = $auto_ajax_level == 'advanced' ? 'checked' : '';
+                    $disabled = $auto_ajax_level == 'advanced' ? '' : 'disabled';
                     ?>
-                    <!-- The Radio button to use Advanced Setup -->
-                    <input type="radio" name="auto-ajax-level" class="auto-ajax-lvl" value="advanced" <?php echo $checked ?> />
+                    <!-- The Radio button to use Advanced Setup GLOBAL SETTING -->
+                    <input 
+                        type="radio" name="auto-ajax-level"
+                        class="auto-ajax-lvl" value="advanced" <?php echo $checked ?> />
                     <h4 style="display:inline-block"><?php _e('Advanced','auto-ajax') ?></h4>
 
                 </th>
@@ -162,8 +206,11 @@ if ( isset($_POST['auto-ajax-settings']) == '1' ) {
                     </label>
                     <br />
 
-                    <!-- Checkbox Recursive Container Search -->
-                    <input type="checkbox" name="adv-bubble-query" size="35" class="auto-ajax-checkbox" value="true" <?php echo $checked ?>/>
+                    <!-- Checkbox Recursive Container Search ADVANCED SETTING -->
+                    <input 
+                        type="checkbox" name="adv-bubble-query" data-setting-lvl="advanced"
+                        size="35" class="auto-ajax-checkbox" value="true"
+                        <?php echo $checked ?> <?php echo $disabled ?> />
 
                     <!-- Tooltip -->
                     <span class="dashicons dashicons-editor-help auto-ajax-info-icon"></span>
@@ -185,13 +232,16 @@ if ( isset($_POST['auto-ajax-settings']) == '1' ) {
                     </label>
                     <br />
 
-                    <!-- Textbox Default Ajax Loading div -->
-                    <input type="text" name="adv-menu-div" size="35" class="auto-ajax-input" value="<?php echo $adv_menu_div ?>"/>
+                    <!-- Textbox Default Ajax Loading div ADVANCED SETTING -->
+                    <input
+                        type="text" name="adv-menu-div" data-setting-lvl="advanced"
+                        size="35" class="auto-ajax-input"
+                        value="<?php echo $adv_menu_div ?>" <?php echo $disabled ?> />
 
                     <!-- Tooltip -->
                     <span class="dashicons dashicons-editor-help auto-ajax-info-icon"></span>
                     <p class="auto-ajax-tooltip">
-                        <?php _e('Ajax Menu Selector: This is a css selector that DOES NOT have to be unique. Any link elements, &lt;a&gt; inside elements matching this selector will attempt to be loaded using Auto-Ajax into the Ajax Custom Container. If you want all links on the page to be used, leave it blank', 'auto-ajax') ?>
+                        <?php _e($page_content['ajax_menu_selector'], 'auto-ajax') ?>
                     </p>
 
                 </td>
@@ -207,8 +257,11 @@ if ( isset($_POST['auto-ajax-settings']) == '1' ) {
                     </label>
                     <br />
 
-                    <!-- Textbox Default Ajax Loading div -->
-                    <input type="text" name="adv-load-div" size="35" class="auto-ajax-input" value="<?php echo $adv_load_div ?>"/>
+                    <!-- Textbox Default Ajax Loading div ADVANCED SETTING -->
+                    <input
+                        type="text" name="adv-load-div" data-setting-lvl="advanced"
+                        size="35" class="auto-ajax-input" 
+                        value="<?php echo $adv_load_div ?>" <?php echo $disabled ?> />
 
 
                     <!-- Tooltip -->
@@ -232,8 +285,11 @@ if ( isset($_POST['auto-ajax-settings']) == '1' ) {
                     </label>
                     <br />
 
-                    <!-- Textbox Default Ajax Loading div -->
-                    <input type="text" name="adv-fallback-div" class="auto-ajax-input" size="35" value="<?php echo $adv_fallback_div ?>"/>
+                    <!-- Textbox Default Ajax Loading div ADVANCED SETTING -->
+                    <input
+                        type="text" name="adv-fallback-div" data-setting-lvl="advanced"
+                        class="auto-ajax-input" size="35"
+                        value="<?php echo $adv_fallback_div ?>" <?php echo $disabled ?> />
 
 
                     <!-- Tooltip -->
@@ -254,16 +310,10 @@ if ( isset($_POST['auto-ajax-settings']) == '1' ) {
                 </th>
                 <td>
                     <button type="submit" id="autoAjaxSubmit"><?php _e('Update Settings', 'auto-ajax') ?></button>
-
-                    <?php
-                    if (isset($updated) && $updated):
-                        echo '<div style="font-size:1.75em">' .__('Auto Ajax Updated!', 'auto-ajax') . '</div>';
-                    endif;
-                    ?>
                 </td>
             </tr>
 
-            <?php settings_fields('rosata-auto-ajax') ?>
+            <?php settings_fields('auto-ajax') ?>
             <input type="hidden" class="widefat" name="auto-ajax-settings" value="1" />
 
         </table>

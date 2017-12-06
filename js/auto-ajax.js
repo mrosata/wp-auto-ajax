@@ -1,32 +1,11 @@
 /**
  * AutoAjax WP Plugin
  *
- * @author Michael Rosata mrosata1984@gmail.com
+ * @author Michael Rosata michael.rosata@gmail.com
  * @website http://onethingsimple.com
- * @version 0.1.1
+ * @version 0.1.3
  */
-
 jQuery(function ($) {
-
-  /**
-   * Just a simple random key generator. Used to create unique labels for elements
-   * @param len
-   * @param pool
-   * @returns {string}
-   */
-  function autoAjaxRandomKey(len, pool) {
-    len = len || 10;
-    len = parseInt(len, 10);
-    pool = pool || 'abcdefghijklmnopqrstuvwxyz1234567890';
-    var pLen = pool.length;
-    var i = 0;
-    var output = '';
-    for (i;i<len;i++) {
-      output += pool[Math.floor( (Math.random()*100*pool.length) % (pLen-1), 10)].toString();
-    }
-    return output;
-  }
-
   /**
    * OPTIONS, localized from WP Options
    */
@@ -67,8 +46,8 @@ jQuery(function ($) {
   var autoAjax = {
 
     // WP Dashboard Auto Ajax User Settings
-    showLoading : options['show-loading'],
-    advBubbleQ  : options['adv-bubble-query'],
+    showLoading : strToBool(options['show-loading']),
+    advBubbleQ  : strToBool(options['adv-bubble-query']),
     updateBrowserUrl: options['update-browser-url'],
     advFallback : options['adv-fallback-div'],
     advLoadDiv  : options['adv-load-div'],
@@ -91,6 +70,29 @@ jQuery(function ($) {
     // Keep a list of all foot scripts #Currently unused
     footScripts : [],
 
+    /**
+     * Get all Options
+     */
+    getOpts: function() {
+      return {
+        showLoading : this.showLoading,
+        advBubbleQ  : this.advBubbleQ,
+        updateBrowserUrl: this.updateBrowserUrl,
+        advFallback : this.advFallback,
+        advLoadDiv  : this.advLoadDiv,
+        advMenuDiv  : this.advMenuDiv,
+        autoAjaxLvl : this.autoAjaxLvl,
+        defaultDiv  : this.defaultDiv,
+      };
+    },
+    
+    /**
+     * Get a single option value
+     */
+    getOpt: function(optionName) {
+      var opts = this.getOpts();
+      return opts[optionName];
+    },
 
     /**
      * Initiate the AutoAjax object, setup the page using plugin settings
@@ -108,7 +110,7 @@ jQuery(function ($) {
 
 
     appendLoading:function($elm){
-       if (!$elm && typeof $elm === "object")
+       if ($elm && typeof $elm === "object")
         $elm.append('<div class="loading"></div>');
     },
 
@@ -128,16 +130,16 @@ jQuery(function ($) {
     prepUrls : function (selector, context) {
       var self = this,
           blogUrl = self.locals.blogUrl;
-      
+
       selector = selector || self.globalSelector;
       context = context || '';
       context = context.length > 0 ? context + ' ' : context;
       
       // Set up the links if we have the info needed
       if (blogUrl != '') {
-        var links = $( context + selector );
-
-        links.each(function (i, anchor) {
+        var $links = $( context + selector );
+        
+        $links.each(function (i, anchor) {
           var $anchor = $(this),
               url = $(this).attr('href');
 
@@ -214,7 +216,6 @@ jQuery(function ($) {
     },
 
     /**
-     // TODO: Remove arguments from functions where possible in favor of object properties
      * Make an Ajax request on AutoAjax links, check page, prep the results
      * @param url          The url to be loaded
      * @param callback     The callback to handle the response if successful
@@ -232,12 +233,12 @@ jQuery(function ($) {
           refPointClass = '.' + self.refPointKey;
       
       self.url = url;
-      
-      if ((self.advBubbleQ == 'true') && refPointClass )  {
-        $oldContent = $( container).has(refPointClass);
-        
-        if (!$oldContent.length && fallback != '') {
-          // Try fallback, no need to check since nothing else we could do
+
+      $oldContent = $(container);
+      if (self.getOpt('advBubbleQ') && refPointClass )  {
+        $oldContent = $oldContent.has(refPointClass);
+        if ((!$oldContent || $oldContent.length) && fallback) {
+          // Try fallback, no need to check it for length though
           $oldContent = $(fallback).has(refPointClass);
         }
       }
@@ -250,17 +251,20 @@ jQuery(function ($) {
         url : self.url,
         type : 'GET',
         dataType : 'html',
+        
         error: function() {
           $(document).trigger('error.wp-auto-ajax', arguments);
         },
+        
         complete: function() {
           $(document).trigger('complete.wp-auto-ajax', arguments);
         },
+        
         success : function (res) {
           // Get the new content and old content references
           var $resContent = $(res).find( container );
 
-          if (typeof $resContent !== "undefined" && $resContent.length && typeof $oldContent !== "undefined" && $oldContent.length) {
+          if (typeof $resContent !== "undefined" && $resContent.length && ($oldContent && $oldContent.length)) {
             // We are in good shape to load content
             callback($resContent, $oldContent);
           } else if (fallback != ''){
@@ -362,3 +366,44 @@ jQuery(function ($) {
   autoAjax.init($);
 
 });
+
+
+/**
+ * Just a simple random key generator. Used to create unique labels for elements
+ * @param len
+ * @param pool
+ * @returns {string}
+ */
+function autoAjaxRandomKey(len, pool) {
+  len = len || 10;
+  len = parseInt(len, 10);
+  pool = pool || 'abcdefghijklmnopqrstuvwxyz1234567890';
+  var pLen = pool.length;
+  var i = 0;
+  var output = '';
+  for (i;i<len;i++) {
+    output += pool[Math.floor( (Math.random()*100*pool.length) % (pLen-1), 10)].toString();
+  }
+  return output;
+}
+
+/**
+ * Convert a string representation of a true or false,
+ * IE: 'true|false', 'yes|no', 'y|n', 'on|off', '1|0'
+ * into an actual boolean.
+ */
+function strToBool(str = '') {
+  if (typeof str === 'boolean')
+    return str;
+
+  switch ((''+str+'').toLowerCase()){
+    case 'true':
+    case 'yes':
+    case 'on':
+    case 'y':
+    case '1':
+      return true;
+    default:
+      return false;
+  }
+}

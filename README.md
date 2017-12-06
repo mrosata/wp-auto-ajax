@@ -3,12 +3,18 @@
 WP Auto Ajax!
 ===================
 
+> Update 2017-12-06
+- Moved __Auto Ajax__ into the Admin "Settings" menu rather than "Tools". Plugins
+which classify as "tools" perform a task and complete. __Auto Ajax__ seems more at
+home in settings.
+- Moved history input to top of settings page to make the __Auto Ajax__ settings easier to understand.
+- Also, now settings not relative to the plugin setting level ('basic'/'advanced') will be disabled as well.
 
 > Update 2016-07-08
-Added custom events for `'complete.wp-auto-ajax'` and `'success.wp-auto-ajax'` and `'error.wp-auto-ajax'` so you may attach custom JavaScript logic to run at these times. See below for more info.
+- Added custom events for `'complete.wp-auto-ajax'` and `'success.wp-auto-ajax'` and `'error.wp-auto-ajax'` so you may attach custom JavaScript logic to run at these times. See below for more info.
 
 > Update 2016-07-07
-I've gone and fixed a few JavaScript errors that may or may not have been seen in some themes. A new History feature has been added which works regardless if you are in basic or advanced mode (you just need to check the checkbox on the settings page). The history feature will update the url after a successful Ajax page load and it will try to implement Ajax functionality when the user hits back/forward through their history. Just like with the normal settings, if the plugin can't successfully make and populate Ajax content into the page then it will fallback to regular page loads.
+- I've gone and fixed a few JavaScript errors that may or may not have been seen in some themes. A new History feature has been added which works regardless if you are in basic or advanced mode (you just need to check the checkbox on the settings page). The history feature will update the url after a successful Ajax page load and it will try to implement Ajax functionality when the user hits back/forward through their history. Just like with the normal settings, if the plugin can't successfully make and populate Ajax content into the page then it will fallback to regular page loads.
 
 
 
@@ -35,14 +41,14 @@ If you would like to attach custom JavaScript events to fire after the ajax retu
 ```javascript
 /* success: Fires when the ajax request returns successfully and 
             the plugin is able to load content into your HTML. */
-    $(document).on('complete.wp-auto-ajax', someLogicForOnComplete);
+    jQuery(document).on('success.wp-auto-ajax', someLogicForOnComplete);
     
 /* error: Fires when the ajax request throws an error and in those
           cases you probably have something wrong on your server. */
-    $(document).on('complete.wp-auto-ajax', someLogicForOnComplete);
+    jQuery(document).on('error.wp-auto-ajax', someLogicForOnComplete);
     
 /* complete: Fires when ajax is complete regardless of outcome. */
-    $(document).on('complete.wp-auto-ajax', someLogicForOnComplete);
+    jQuery(document).on('complete.wp-auto-ajax', someLogicForOnComplete);
 ```
 
 One thing to note, if the Ajax request comes back fine but for some reason the plugin isn't able to handle loading the content into the page there is no event because the plugin just allows the link to behave the same way it would have if the plugin wasn't turned on (so the next page loads without Ajax and there is no need for event handling).

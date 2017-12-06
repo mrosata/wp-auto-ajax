@@ -5,13 +5,14 @@
 * @wordpress-plugin
 * Plugin Name:       Auto Ajax
 * Plugin URI:        http://onethingsimple.com/auto-ajax
-* Description:       Makes local links use Ajax rather then reload the entire page. Quickly turn your WP Site into an Ajax SPA (Single Page Application)
-* Version:           0.1.0
-* Author:            Stayshine Web Development
+* Description:       WordPress Navigation becoms asyncronous. Where possible Ajax is used rather than reloading entire page after clicking links. Quickly turn your WP Site into an Ajax SPA (Single Page Application)
+* Version:           0.1.3
+* Author:            Michael Rosata (Stayshine Web Development) 
 * Author URI:        http://stayshine.com/
 * License:           GPL-2.0+
 * License URI:       http://www.gnu.org/licenses/gpl-2.0.txt
 * Text Domain:       autobeast
+* Tags:              ajax, asyncronous, page loading, SPA, single page app, history, reload, navigation, links
 * Domain Path:       /languages
 */
 
@@ -45,7 +46,7 @@ class Auto_Ajax {
     public function add_admin_subpage () {
         if ( !$this->admin_setup ) {
             // Tell WP that we want our own sub page
-            add_management_page( 'Auto Ajax Settings', 'Auto Ajax', 'manage_options', 'rosata-auto-ajax', array($this, 'add_admin_subpage') );
+            add_submenu_page( 'options-general.php', 'Auto Ajax Settings', 'Auto Ajax', 'manage_options', 'auto-ajax', array($this, 'add_admin_subpage') );
             $this->admin_setup = true;
         } elseif($this->admin_setup) {
             // Display the page for the options menu
@@ -55,10 +56,10 @@ class Auto_Ajax {
 
     private function setup () {
         // Get the options for plugin from database
-        $options = get_option('rosata-auto-ajax');
+        $options = get_option('auto-ajax');
         // If not there, add empty array
         if ( !is_array($options) ){
-            add_option('rosata-auto-ajax', array());
+            add_option('auto-ajax', array());
         }
         // Now make sure we have either updated or default values
         $this->default_div      = isset($options['default-div'])      ? $options['default-div'] : '#content';
@@ -70,7 +71,7 @@ class Auto_Ajax {
         $this->update_browser_url = isset($options['update-browser-url']) ? $options['update-browser-url'] : 'false';
 
         // Update the options in database in case this is initial setup or options have been added in upgrade
-        update_option('rosata-auto-ajax', array(
+        update_option('auto-ajax', array(
             'default-div'       => $this->default_div,
             'adv-load-div'      => $this->adv_load_div,
             'adv-menu-div'      => $this->adv_menu_div,
@@ -91,7 +92,7 @@ class Auto_Ajax {
     public function enqueue_autoajax_scripts () {
 
         // Enqueue the script for the frontend use
-        wp_enqueue_script('auto-ajax-plugin', plugins_url('/js/auto-ajax.js',__FILE__), array('jquery'));
+        wp_enqueue_script('auto-ajax-plugin', plugins_url('/js/auto-ajax.js', __FILE__), array('jquery'), true);
         // Localize the plugin options and needed data
         wp_localize_script('auto-ajax-plugin', 'autoAjaxConfigObject',
             array(
