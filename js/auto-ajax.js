@@ -54,6 +54,8 @@ jQuery(function ($) {
     advMenuDiv  : options['adv-menu-div'],
     autoAjaxLvl : options['auto-ajax-level'],
     defaultDiv  : options['default-div'],
+
+    reloadFooterScripts: true,
     // Custom callback for Meyim
     customPrep  : 'customMeyimFunc',
     // May be used to cycle back 1 page
@@ -83,6 +85,7 @@ jQuery(function ($) {
         advMenuDiv  : this.advMenuDiv,
         autoAjaxLvl : this.autoAjaxLvl,
         defaultDiv  : this.defaultDiv,
+        reloadFooterScripts: this.reloadFooterScripts,
       };
     },
     
@@ -230,7 +233,8 @@ jQuery(function ($) {
       }
       var self = this,
           $oldContent,
-          refPointClass = '.' + self.refPointKey;
+          refPointClass = '.' + self.refPointKey,
+          $resScripts;
       
       self.url = url;
 
@@ -262,7 +266,29 @@ jQuery(function ($) {
         
         success : function (res) {
           // Get the new content and old content references
-          var $resContent = $(res).find( container );
+          var $res = $(res);
+          var $resContent = $res.find( container );
+
+          if (self.getOpt('reloadFooterScripts') && $res.length) {
+            // Just overwrite reference to footerScripts array
+            self.footerScripts = [];
+            // Get all script tag data from the page we are about to load from
+            // the Ajax response
+            $res
+              .filter(function(i, x) {
+              return x.nodeType === 1 && x.nodeName === 'SCRIPT'
+            })
+              .filter(isWpThemeScript)
+              .each(function (i, tag) {
+                var $tag = $(tag);
+                var src = $tag.prop('src');
+                var type = $tag.prop('type');
+                self.footerScripts.push({
+                  src: src,
+                  type: type ? type : 'text/javascript',
+                });
+              });
+          }
 
           if (typeof $resContent !== "undefined" && $resContent.length && ($oldContent && $oldContent.length)) {
             // We are in good shape to load content
@@ -316,8 +342,10 @@ jQuery(function ($) {
       if (self.updateBrowserUrl) {
         self.updateHistoryUrl();
       }
-      
-      self.reloadThemeFooterScripts();
+
+      if (self.getOpt('reloadFooterScripts')) {
+        self.reloadThemeFooterScripts();
+      }
     },
 
     updateHistoryUrl: function() {
@@ -335,22 +363,8 @@ jQuery(function ($) {
 
     reloadThemeFooterScripts: function () {
       var $body = $('body');
-      var footerScripts = [];
+      var footerScripts = this.footerScripts || [];
       // Get a list of scripts to remove
-      $('body > script')
-        .filter(function(index, tag) {
-          var src = $(tag).prop('src');
-          if (!src || !src.match(/.*wp\-content\/themes\/.+/)){
-            return false;
-          }
-          return true;
-        })
-        .each(function (index, tag) {
-          var src = $(tag).prop('src');
-          var type = $(tag).prop('type');
-          footerScripts.push({src:src, type:type || 'text/javascript'});
-          $(tag).remove();
-        });
 
       // Now add all the scripts back into the body
       while (footerScripts.length) {
@@ -396,6 +410,15 @@ jQuery(function ($) {
   autoAjax.locals = $.extend(autoAjax.locals, window.autoAjaxConfigObject);
   // initialize the autoAjax object
   autoAjax.init($);
+
+  function isWpThemeScript (index, tag) {
+    var $tag = $(tag);
+    var src = $tag && $tag.prop('src');
+    if (!src || !src.match(/.*wp\-content\/themes\/.+/)){
+      return false;
+    }
+    return true;
+  }
 
 });
 
