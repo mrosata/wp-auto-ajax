@@ -40,24 +40,23 @@ jQuery(function ($) {
    * makeAjaxRequest: Function, 
    * loadResults: Function, 
    * loadPageNormal: Function, 
-   * customMeyimFunc: Function
    * }}
    */
   var autoAjax = {
 
     // WP Dashboard Auto Ajax User Settings
-    showLoading : strToBool(options['show-loading']),
-    advBubbleQ  : strToBool(options['adv-bubble-query']),
-    updateBrowserUrl: options['update-browser-url'],
-    advFallback : options['adv-fallback-div'],
-    advLoadDiv  : options['adv-load-div'],
-    advMenuDiv  : options['adv-menu-div'],
-    autoAjaxLvl : options['auto-ajax-level'],
-    defaultDiv  : options['default-div'],
+    showLoading         : strToBool(options['show-loading']),
+    advBubbleQ          : strToBool(options['adv-bubble-query']),
+    updateBrowserUrl    : options['update-browser-url'],
+    advFallback         : options['adv-fallback-div'],
+    advLoadDiv          : options['adv-load-div'],
+    advMenuDiv          : options['adv-menu-div'],
+    autoAjaxLvl         : options['auto-ajax-level'],
+    defaultDiv          : options['default-div'],
+    autoReloadScripts   : options['auto-reload-scripts'],
+    excludeScriptRe : options['adv-ignore-script-re'],
 
-    reloadFooterScripts: true,
-    // Custom callback for Meyim
-    customPrep  : 'customMeyimFunc',
+    replaceBodyClasses: true,
     // May be used to cycle back 1 page
     autoCache   : null,
     // Turn on to prevent normal page loading on auto-ajax links
@@ -85,7 +84,9 @@ jQuery(function ($) {
         advMenuDiv  : this.advMenuDiv,
         autoAjaxLvl : this.autoAjaxLvl,
         defaultDiv  : this.defaultDiv,
-        reloadFooterScripts: this.reloadFooterScripts,
+        autoReloadScripts: this.autoReloadScripts,
+        replaceBodyClasses: this.replaceBodyClasses,
+        excludeScriptRe: this.excludeScriptRe,
       };
     },
     
@@ -268,17 +269,33 @@ jQuery(function ($) {
           // Get the new content and old content references
           var $res = $(res);
           var $resContent = $res.find( container );
+          var classMatch;
+          // A couple predicate functions
+          var isWpThemeScript = isScriptMatching(/.*wp\-content\/themes\/.+/),
+            isWpPluginScript = isScriptMatching(/.*wp\-content\/plugins\/.+/),
+            isModernizrScript = isScriptMatching(/.*modernizr.+/),
+            excludeStrRe = isScriptMatching(new RegExp(self.getOpt('excludeScriptRe'))),
+            isAutoAjaxScript = isScriptMatching(/.*wp\-content\/plugins\/wp\-auto\-ajax\/js.+/);
 
-          if (self.getOpt('reloadFooterScripts') && $res.length) {
+          if (self.getOpt('replaceBodyClasses') && $res.length) {
+            classMatch = res.match(/body[^>]+class=['"]([^'"]+)['"]/mi);
+            if (classMatch && classMatch.length > 1) {
+              $('body').attr('class', classMatch[1]);
+            }
+          }
+          if (self.getOpt('autoReloadScripts') && $res.length) {
             // Just overwrite reference to footerScripts array
             self.footerScripts = [];
             // Get all script tag data from the page we are about to load from
             // the Ajax response
             $res
               .filter(function(i, x) {
-              return x.nodeType === 1 && x.nodeName === 'SCRIPT'
-            })
-              .filter(isWpThemeScript)
+                return x.nodeType === 1 && x.nodeName === 'SCRIPT'
+              })
+              .filter(either(isWpThemeScript, isWpPluginScript))
+              .filter(not(isModernizrScript))
+              .filter(not(isAutoAjaxScript))
+              .filter(not(excludeStrRe))
               .each(function (i, tag) {
                 var $tag = $(tag);
                 var src = $tag.prop('src');
@@ -343,7 +360,7 @@ jQuery(function ($) {
         self.updateHistoryUrl();
       }
 
-      if (self.getOpt('reloadFooterScripts')) {
+      if (self.getOpt('autoReloadScripts')) {
         self.reloadThemeFooterScripts();
       }
     },
@@ -364,46 +381,44 @@ jQuery(function ($) {
     reloadThemeFooterScripts: function () {
       var $body = $('body');
       var footerScripts = this.footerScripts || [];
+      // Find theme/plugin related scripts with these predicate functions
+      var isWpThemeScript = isScriptMatching(/.*wp\-content\/themes\/.+/),
+          isWpPluginScript = isScriptMatching(/.*wp\-content\/plugins\/.+/),
+          isModernizrScript = isScriptMatching(/.*modernizr.+/),
+          excludeStrRe = isScriptMatching(new RegExp(this.getOpt('excludeScriptRe'))),
+          isAutoAjaxScript = isScriptMatching(/.*wp\-content\/plugins\/wp\-auto\-ajax\/.*/);
+
       // Get a list of scripts to remove
+      
+      $(document.documentElement).find('script')
+        .filter(either(isWpThemeScript, isWpPluginScript))
+        .filter(not(isAutoAjaxScript))
+        .filter(not(isModernizrScript))
+        .filter(not(excludeStrRe))
+        .each(function(i, tag) {
+          tag.remove();
+        })
 
-      // Now add all the scripts back into the body
-      while (footerScripts.length) {
-        var next = footerScripts.shift();
-        var $newScript = $('<script></script>');
-        $newScript.prop('src', next.src);
-        $newScript.prop('type', next.type);
-        $body.append($newScript);
-      }
-
+      setTimeout(function() {
+        // Now add all the scripts back into the body
+        while (footerScripts.length) {
+          var next = footerScripts.shift();
+          var $newScript = $('<script></script>');
+          $newScript.prop('src', next.src);
+          $newScript.prop('type', next.type);
+          try {
+            $body.append($newScript);
+          }
+          catch (e) {
+            // Vendor JavaScript writers might not have expected their script
+            // be loaded here.
+            console.warn(`[SCRIPT] ${ next.src } was unable to load.`)
+          }
+        }
+      }, 0);
     },
 
-    /**
-     * This function reloads the prev page into container when a regular nav menu link is pressed
-     * It is designed for Meyim, because their nav-menu loads and annotates pages into new containers
-     * so the user can flip/slide through them like cards. By loading into their containers, we break
-     * their annotation for the container we loaded into, making the related nav menu button appear
-     * broken. This function is called from AutoAjax.init. It uses AutoAjax.autoCache
-     * autoCache I may extend to use with plugin
-     */
-    customMeyimFunc : function () {
-      var self = this;
-
-      if ('meyimInit' in self) {
-        if (self.autoCache && ('prevContent' in self)) {
-          // Attempt to reload the prev content into div
-          var prev = self.prevContent;
-          prev.container.html( prev.html );
-          self.removeLoading(prev.container);
-        }
-      } else {
-        self.autoCache = true;
-        self.meyimInit = true;
-        $('#main-nav a').on('click.autoajax', function (evt) {
-          self.customMeyimFunc();
-        });
-      }
-    }
-
+    /** End of AutoAjax Class **/
   };
 
   // set up the config vars for the autoAjax object
@@ -411,17 +426,38 @@ jQuery(function ($) {
   // initialize the autoAjax object
   autoAjax.init($);
 
-  function isWpThemeScript (index, tag) {
-    var $tag = $(tag);
-    var src = $tag && $tag.prop('src');
-    if (!src || !src.match(/.*wp\-content\/themes\/.+/)){
-      return false;
+  /**
+   * Create a predicate to test script tag for matching src
+   * @param {RegExp} re
+   * @return {Function} predicate to test 1 script tag
+   */
+  function isScriptMatching (re) {
+    return function (index, tag) {
+      var $tag = $(tag);
+      var src = $tag && $tag.prop('src');
+      if (!src || !src.match(re)){
+        return false;
+      }
+      return true;
     }
-    return true;
   }
 
 });
 
+function either (f, g) {
+  if (typeof f !== 'function' || typeof g !== 'function') {
+    throw 'Either expects functions as arguments';
+  }
+  return function(x) {
+    return f.apply(null, arguments) || g.apply(null, arguments);
+  }
+}
+
+function not(f) {
+  return function (x) {
+    return !(f.apply(f, arguments));
+  }
+}
 
 /**
  * Just a simple random key generator. Used to create unique labels for elements

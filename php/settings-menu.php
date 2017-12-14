@@ -19,22 +19,26 @@ if ( isset($_POST['auto-ajax-settings']) == '1' ) {
 
     // The form was just submitted, check if anything needs updating
     $auto_ajax_level = esc_attr($_POST['auto-ajax-level']);
+    $update_browser_url = strtolower(esc_attr($_POST['update-browser-url'])) == 'true' ? 'true' : 'false';
+    $auto_reload_scripts = strtolower(esc_attr($_POST['auto-reload-scripts'])) == 'true' ? 'true' : 'false';
     $default_div = esc_attr($_POST['default-div']);
     $adv_load_div = esc_attr($_POST['adv-load-div']);
     $adv_menu_div = esc_attr($_POST['adv-menu-div']);
     $adv_fallback_div = esc_attr($_POST['adv-fallback-div']);
     $adv_bubble_query = strtolower(esc_attr($_POST['adv-bubble-query'])) == 'true' ? 'true' : 'false';
-    $update_browser_url = strtolower(esc_attr($_POST['update-browser-url'])) == 'true' ? 'true' : 'false';
+    $adv_ignore_script_re = esc_attr($_POST['adv-ignore-script-re']);
 
 
     $options = array(
-        'default-div'       => $default_div,
-        'adv-load-div'      => $adv_load_div,
-        'adv-menu-div'      => $adv_menu_div,
-        'auto-ajax-level'   => $auto_ajax_level,
-        'adv-fallback-div'  => $adv_fallback_div,
-        'adv-bubble-query'  => $adv_bubble_query,
-        'update-browser-url' => $update_browser_url,
+        'default-div'          => $default_div,
+        'adv-load-div'         => $adv_load_div,
+        'adv-menu-div'         => $adv_menu_div,
+        'auto-ajax-level'      => $auto_ajax_level,
+        'adv-fallback-div'     => $adv_fallback_div,
+        'adv-bubble-query'     => $adv_bubble_query,
+        'update-browser-url'   => $update_browser_url,
+        'auto-load-scripts'    => $auto_reload_scripts,
+        'adv-ignore-script-re' => $adv_ignore_script_re,
     );
 
     update_option('auto-ajax', $options);
@@ -52,8 +56,12 @@ if ( isset($_POST['auto-ajax-settings']) == '1' ) {
     $auto_ajax_level = $options['auto-ajax-level'];
     $adv_bubble_query = $options['adv-bubble-query'];
     $update_browser_url = $options['update-browser-url'];
+    $auto_reload_scripts = $options['auto-reload-scripts'];
+    $adv_ignore_script_re = $options['adv-ignore-script-re'];
 }
 
+$nbsp='&nbsp;';
+$nbtb="{$nbsp}{$nbsp}{$nbsp}{$nbsp}";
 $page_content=array();
 $page_content['explain_basic_mode'] = "Please try the <strong>Basic Mode</strong> to begin. By defualt it should"
   . " hopefully work well for general WP themes. The \"Ajax HTML Container\" is a selector that tells <strong>"
@@ -73,6 +81,25 @@ $page_content['ajax_menu_selector'] = "This optional css selector will force <st
   . " select all links on the page (<em>In any case Auto Ajax only ever modifies links that point to your own website, external links"
   . " will always be ignored</em>). <br/>Elements matching this selector will trigger Auto-Ajax Ajax when clicked.";
 
+$page_content['auto_reload_scripts'] = "Normally everytime a WP page is loaded there are JavaScript files loaded as well, and they"
+  . " perform important logic onload. Auto-Ajax will search the page being loaded asyncronously for &lt;script&gt; tags and load"
+  . " those scripts into the current page. On subsequent navigations these scripts are removed and again replaced with scripts from"
+  . " the latest page load. Uncheck this box to prevent this behaviour, or use advanced settings to fine-tune which scripts are"
+  . " managed by Auto Ajax. <em>(Auto Ajax replaces/reload scripts from the plugins and theme folders by default, not core WP scripts)</em>";
+
+$page_content['adv_ignore_script_re'] = "A regular expression to match scripts that Auto Ajax should ignore when loading scripts from the"
+  . " next page into the current page. Use negitive matching techniques to use this option as a filter for all scripts except the ones"
+  . " that match your regex.<br/>$nbsp$nbsp <strong>Simple Example:</strong> <em>(will ignore reloading scripts with \"bad-plugin-name\" in the file or"
+  . " absolute directory path)</em><br/>$nbsp$nbsp<code>.+bad-plugin-name.+</code><br/><br/>$nbsp$nbsp <strong>Complex Example:</strong><em>"
+  . " (only reload scripts with <code>src</code> values not containing \"good-plugin\", \"some-great-plugin\" or located inside themes"
+  . " folder \"wp-content/themes/\")</em><br/>$nbtb "
+  . " <code>^.((?!good-plugin|some-great-plugin|\/wp-content\/themes\/.*).)*$</code><br/><br/> $nbtb <strong>Won't Match (will reload): </strong> $nbtb "
+  . "<pre>      wp-content/plugins/good-plugin/js/any-script.js
+      wp-content/plugins/some-great-plugin/js/load-me.js
+      wp-content/themes/my-theme/js/vendor/this-will-load.js</pre>"
+  . "$nbtb <strong>Auto Ajax Will Match (will not reload): </strong> $nbtb "
+  . "<pre>      wp-content/plugins/some-useless-plugin/js/donot-load-me.js
+      wp-content/plugins/ignored-plugin/js/wont-load-me.js</pre>";
 //todo: You should Automate this form so that you won't have to write it again in the future for other plugins
 ?>
 <div class="wrap">
@@ -110,7 +137,7 @@ $page_content['ajax_menu_selector'] = "This optional css selector will force <st
             <tr>
                 <th></th>
                 <td>
-                    <?php // see if Ajax Bubbling container search is checked
+                    <?php
                     $checked = strtolower($update_browser_url) == 'true' ? 'checked' : '';
                     ?>
                     <label for="adv-menu-div">
@@ -131,6 +158,34 @@ $page_content['ajax_menu_selector'] = "This optional css selector will force <st
 
                 </td>
             </tr>
+
+
+            <!-- Automatically Load/Reload Script tags on pages loaded by Ajax -->
+            <tr>
+                <th></th>
+                <td>
+                    <?php
+                    $checked = strtolower($auto_reload_scripts) == 'true' ? 'checked' : '';
+                    ?>
+                    <label for="auto-reload-scripts">
+                        <?php _e('Automatically Reload Theme & Plugin Scripts:', 'auto-ajax') ?>
+                    </label>
+                    <br />
+
+                    <!-- Update Browser URL (History) GLOBAL SETTING -->
+                    <input 
+                        type="checkbox" name="auto-reload-scripts"
+                        size="35" class="auto-ajax-checkbox" value="true" <?php echo $checked ?>/>
+
+                    <!-- Tooltip -->
+                    <span class="dashicons dashicons-editor-help auto-ajax-info-icon"></span>
+                    <p class="auto-ajax-tooltip">
+                        <?php _e($page_content['auto_reload_scripts'], 'auto-ajax') ?>
+                    </p>
+
+                </td>
+            </tr>
+
 
 
 
@@ -302,6 +357,34 @@ $page_content['ajax_menu_selector'] = "This optional css selector will force <st
                 </td>
             </tr>
 
+
+
+
+            <!-- Ignore Scripts Using Regular Expression -->
+            <tr>
+                <th></th>
+                <td>
+                    <label for="adv-ignore-script-re">
+                        <?php _e('Ignore Reloading Scripts Matching: (optional)', 'auto-ajax') ?>
+                    </label>
+                    <br />
+
+                    <!-- Textbox Ignore Reloading Scripts Matching a RegExp ADVANCED SETTING -->
+                    <input
+                        type="text" name="adv-ignore-script-re" data-setting-lvl="advanced"
+                        class="auto-ajax-input" size="35"
+                        value="<?php echo $adv_ignore_script_re ?>" <?php echo $disabled ?> />
+
+
+                    <!-- Tooltip -->
+                    <span class="dashicons dashicons-editor-help auto-ajax-info-icon"></span>
+                    <p class="auto-ajax-tooltip">
+                        <?php _e($page_content['adv_ignore_script_re'], 'auto-ajax') ?>
+                    </p>
+
+
+                </td>
+            </tr>
 
 
 

@@ -20,13 +20,15 @@
 class Auto_Ajax {
 
     // Default Options, will be updated by setup method during init
-    public $default_div = '#content',
-           $adv_load_div = '',
-           $adv_menu_div = '',
-           $auto_ajax_level = 'basic',
-           $adv_fallback_div = '',
-           $adv_bubble_query = 'false',
-           $update_browser_url = 'false',
+    public $default_div             = '#content',
+           $update_browser_url      = 'false',
+           $auto_reload_scripts     = 'true',
+           $adv_load_div            = '',
+           $adv_menu_div            = '',
+           $auto_ajax_level         = 'basic',
+           $adv_fallback_div        = '',
+           $adv_bubble_query        = 'false',
+           $adv_ignore_script_re    = '',
            $options;
 
     function __construct () {
@@ -62,23 +64,27 @@ class Auto_Ajax {
             add_option('auto-ajax', array());
         }
         // Now make sure we have either updated or default values
-        $this->default_div      = isset($options['default-div'])      ? $options['default-div'] : '#content';
-        $this->adv_load_div     = isset($options['adv-load-div'])     ? $options['adv-load-div'] : '';
-        $this->adv_menu_div     = isset($options['adv-menu-div'])     ? $options['adv-menu-div'] : '';
-        $this->auto_ajax_level  = isset($options['auto-ajax-level'])  ? $options['auto-ajax-level'] : 'basic';
-        $this->adv_fallback_div = isset($options['adv-fallback-div']) ? $options['adv-fallback-div'] : '';
-        $this->adv_bubble_query = isset($options['adv-bubble-query']) ? $options['adv-bubble-query'] : 'false';
-        $this->update_browser_url = isset($options['update-browser-url']) ? $options['update-browser-url'] : 'false';
+        $this->update_browser_url   = isset($options['update-browser-url'])    ? $options['update-browser-url'] : 'false';
+        $this->auto_reload_scripts  = isset($options['auto-reload-scripts'])   ? $options['auto-reload-scripts'] : 'true';
+        $this->default_div          = isset($options['default-div'])           ? $options['default-div'] : '#content';
+        $this->adv_load_div         = isset($options['adv-load-div'])          ? $options['adv-load-div'] : '';
+        $this->adv_menu_div         = isset($options['adv-menu-div'])          ? $options['adv-menu-div'] : '';
+        $this->auto_ajax_level      = isset($options['auto-ajax-level'])       ? $options['auto-ajax-level'] : 'basic';
+        $this->adv_fallback_div     = isset($options['adv-fallback-div'])      ? $options['adv-fallback-div'] : '';
+        $this->adv_bubble_query     = isset($options['adv-bubble-query'])      ? $options['adv-bubble-query'] : 'false';
+        $this->adv_ignore_script_re = isset($options['adv-ignore-script-re'])  ? $options['adv-ignore-script-re'] : '';
 
         // Update the options in database in case this is initial setup or options have been added in upgrade
         update_option('auto-ajax', array(
-            'default-div'       => $this->default_div,
-            'adv-load-div'      => $this->adv_load_div,
-            'adv-menu-div'      => $this->adv_menu_div,
-            'auto-ajax-level'   => $this->auto_ajax_level,
-            'adv-fallback-div'  => $this->adv_fallback_div,
-            'adv-bubble-query'  => $this->adv_bubble_query,
-            'update-browser-url'  => $this->update_browser_url,
+            'update-browser-url'   => $this->update_browser_url,
+            'auto-reload-scripts'  => $this->auto_reload_scripts,
+            'auto-ajax-level'      => $this->auto_ajax_level,
+            'default-div'          => $this->default_div,
+            'adv-load-div'         => $this->adv_load_div,
+            'adv-menu-div'         => $this->adv_menu_div,
+            'adv-fallback-div'     => $this->adv_fallback_div,
+            'adv-bubble-query'     => $this->adv_bubble_query,
+            'adv-ignore-script-re' => $this->adv_ignore_script_re,
         ));
 
         // Set the objects options array to the correct settings
